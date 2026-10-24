@@ -1,0 +1,26 @@
+
+[
+  {
+    "question": "What is gradient descent?",
+    "relevant_chunk_ids": ["gradient_descent_definition"]
+  },
+  {
+    "question": "How does a model reduce its training error?",
+    "relevant_chunk_ids": ["gradient_descent_update_rule"]
+  },
+  {
+    "question": "What is the difference between supervised and unsupervised learning?",
+    "relevant_chunk_ids": [
+      "supervised_learning_definition",
+      "unsupervised_learning_definition"
+    ]
+  },
+  {
+    "question": "Why do we split data into training and test sets?",
+    "relevant_chunk_ids": ["training_test_split"]
+  },
+  {
+    "question": "What does overfitting mean?",
+    "relevant_chunk_ids": ["overfitting_definition"]
+  }
+]

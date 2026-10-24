@@ -1,0 +1,40 @@
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_started
+
+  backend:
+    build: ./backend
+    environment:
+      APP_ENV: development
+      CORS_ORIGINS: http://localhost:5173
+      MONGODB_URI: mongodb://mongo:27017
+      MONGODB_DATABASE: ai_tutor
+      LOG_LEVEL: INFO
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set a 32-character-or-longer JWT_SECRET_KEY in your environment}
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRE_MINUTES: 60
+      # The API can start without a key so /api/chat can return a safe configuration error.
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  mongo:
+    image: mongo:8.0
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mongo_data:
