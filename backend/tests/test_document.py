@@ -404,6 +404,74 @@ def test_document_service_rolls_back_file_when_database_insert_fails(
     assert len(storage.deleted_references) == 1
 
 
+def test_document_service_cleans_up_after_save_failure(client):
+    test_client, fake_database = client
+    auth_header(test_client)
+    user_id = next(iter(fake_database.users.documents))["_id"]
+
+    class PartiallyFailingStorage(FakeStorage):
+        async def save(self, *, file, storage_reference: str) -> None:
+            self.files[storage_reference] = file.read()
+            raise RuntimeError("upload failed")
+
+    storage = PartiallyFailingStorage()
+    service = DocumentService(
+        database=fake_database,
+        storage=storage,
+    )
+
+    with pytest.raises(RuntimeError, match="upload failed"):
+        import asyncio
+
+        asyncio.run(
+            service.create(
+                user_id=user_id,
+                file=io.BytesIO(b"partial upload"),
+                original_filename="lecture.pdf",
+                content_type="application/pdf",
+                file_extension=".pdf",
+                file_size=len(b"partial upload"),
+            )
+        )
+
+    assert storage.files == {}
+    assert len(storage.deleted_references) == 1
+
+
+def test_document_service_does_not_mask_save_error_when_cleanup_fails(client):
+    test_client, fake_database = client
+    auth_header(test_client)
+    user_id = next(iter(fake_database.users.documents))["_id"]
+
+    class PartiallyFailingStorage(FakeStorage):
+        async def save(self, *, file, storage_reference: str) -> None:
+            self.files[storage_reference] = file.read()
+            raise RuntimeError("original upload failure")
+
+    storage = PartiallyFailingStorage()
+    storage.fail_on_delete = True
+    service = DocumentService(
+        database=fake_database,
+        storage=storage,
+    )
+
+    with pytest.raises(RuntimeError, match="original upload failure"):
+        import asyncio
+
+        asyncio.run(
+            service.create(
+                user_id=user_id,
+                file=io.BytesIO(b"partial upload"),
+                original_filename="lecture.pdf",
+                content_type="application/pdf",
+                file_extension=".pdf",
+                file_size=len(b"partial upload"),
+            )
+        )
+
+    assert len(storage.deleted_references) == 1
+
+
 def test_get_own_document(client):
     test_client, _ = client
 

@@ -1,5 +1,6 @@
 
 from datetime import UTC, datetime
+import logging
 from pathlib import Path
 from uuid import uuid4
 
@@ -10,6 +11,9 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.models.document import DocumentDocument
 from app.schemas.document import DocumentResponse
 from app.storage.base import FileStorage
+
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentService:
@@ -40,12 +44,12 @@ class DocumentService:
             file_extension=file_extension,
         )
 
-        await self._storage.save(
-            file=file,
-            storage_reference=storage_reference,
-        )
-
         try:
+            await self._storage.save(
+                file=file,
+                storage_reference=storage_reference,
+            )
+
             return await self.create_metadata(
                 user_id=user_id,
                 original_filename=original_filename,
@@ -60,12 +64,10 @@ class DocumentService:
                     storage_reference=storage_reference,
                 )
             except Exception:
-                # Preserve the original database error while logging
-                # a possible orphaned-file cleanup failure.
-                import logging
-
-                logging.getLogger(__name__).exception(
-                    "Failed to clean up file after metadata creation failed"
+                # Preserve the original failure while logging a possible
+                # orphaned-file cleanup failure.
+                logger.exception(
+                    "Failed to clean up file after document creation failed"
                 )
             raise
 

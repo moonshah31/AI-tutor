@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -22,8 +23,14 @@ class Settings(BaseSettings):
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-3.6-flash"
 
+    document_storage_backend: Literal["local", "r2"] = "local"
     document_storage_path: str = "./storage/documents"
     max_document_size_mb: int = 20
+
+    r2_endpoint_url: str | None = None
+    r2_bucket: str | None = None
+    r2_access_key_id: str | None = None
+    r2_secret_access_key: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",

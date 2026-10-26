@@ -15,7 +15,8 @@ from app.dependencies import get_current_user
 from app.schemas.document import DocumentResponse
 from app.services.document_processing_service import DocumentProcessingService
 from app.services.document_service import DocumentService
-from app.storage.local import LocalFileStorage
+from app.storage.base import FileStorage
+from app.storage.factory import create_file_storage
 
 
 router = APIRouter(
@@ -24,18 +25,25 @@ router = APIRouter(
 )
 
 
+def get_file_storage(
+    settings: Annotated[
+        Settings,
+        Depends(get_settings),
+    ],
+) -> FileStorage:
+    return create_file_storage(settings)
+
+
 def get_document_service(
     database: Annotated[
         AsyncIOMotorDatabase,
         Depends(get_database),
     ],
-    settings: Annotated[
-        Settings,
-        Depends(get_settings),
+    storage: Annotated[
+        FileStorage,
+        Depends(get_file_storage),
     ],
 ) -> DocumentService:
-    storage = LocalFileStorage(settings.document_storage_path)
-
     return DocumentService(
         database=database,
         storage=storage,
@@ -47,13 +55,11 @@ def get_document_processing_service(
         AsyncIOMotorDatabase,
         Depends(get_database),
     ],
-    settings: Annotated[
-        Settings,
-        Depends(get_settings),
+    storage: Annotated[
+        FileStorage,
+        Depends(get_file_storage),
     ],
 ) -> DocumentProcessingService:
-    storage = LocalFileStorage(settings.document_storage_path)
-
     return DocumentProcessingService(
         database=database,
         storage=storage,
