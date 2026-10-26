@@ -31,7 +31,7 @@ dist/
 *.bak
 
 # Local uploads and generated document storage
-storage/
+
 backend/storage/documents/
 
 # OS and editor files
