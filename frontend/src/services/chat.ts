@@ -1,4 +1,5 @@
 import { storedToken } from "./auth";
+import { apiUrl } from "./api";
 
 export type ChatMessage = {
   role: "user" | "assistant";
@@ -61,7 +62,7 @@ export async function authenticatedFetch(
   }
 
   try {
-    const response = await fetch(path, {
+    const response = await fetch(apiUrl(path), {
       ...options,
       headers,
     });

@@ -1,10 +1,12 @@
+import { apiUrl } from "./api";
+
 const TOKEN_KEY = "ai_tutor_access_token";
 
 export type User = { id: string; name: string; email: string };
 type AuthResponse = { access_token: string; token_type: "bearer"; user: User };
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(path, {
+  const response = await fetch(apiUrl(path), {
     ...options,
     headers: { "Content-Type": "application/json", ...options.headers },
   });

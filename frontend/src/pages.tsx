@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import {
   Link,
   Navigate,
@@ -8,6 +8,7 @@ import {
 import ReactMarkdown from "react-markdown";
 
 import { useAuth } from "./auth/AuthContext";
+import { DocumentsPanel } from "./DocumentsPanel";
 import { register } from "./services/auth";
 import {
   ChatApiError,
@@ -21,12 +22,6 @@ import {
   type Conversation,
   type ConversationSummary,
 } from "./services/chat";
-import {
-  deleteDocument,
-  listDocuments,
-  uploadDocument,
-  type TutorDocument,
-} from "./services/documents";
 
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -83,8 +78,20 @@ function AuthForm({
 
   return (
     <main className="page-shell">
-      <section className="auth-card">
-        <p className="eyebrow">AI Tutor</p>
+      <section className="auth-layout">
+        <div className="auth-intro">
+          <Link className="brand-lockup" to="/">
+            <span className="brand-mark" aria-hidden="true">A</span>
+            <span>Learnwell <small>AI TUTOR</small></span>
+          </Link>
+          <p className="eyebrow">A smarter way to study</p>
+          <h1>Make every question a step forward.</h1>
+          <p>Build understanding with a tutor that explains, guides, and learns alongside you.</p>
+          <div className="auth-highlight"><span aria-hidden="true">✦</span> Clear explanations. Your pace. Your progress.</div>
+        </div>
+
+        <section className="auth-card">
+          <p className="eyebrow">{registerMode ? "Get started" : "Your learning space"}</p>
 
         <h1>
           {registerMode
@@ -187,6 +194,7 @@ function AuthForm({
             {registerMode ? "Log in" : "Create one"}
           </Link>
         </p>
+        </section>
       </section>
     </main>
   );
@@ -203,238 +211,37 @@ export const RegisterPage = () => (
 export function DashboardPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [documents, setDocuments] = useState<TutorDocument[]>([]);
-  const [loadingDocuments, setLoadingDocuments] = useState(true);
-  const [documentBusy, setDocumentBusy] = useState(false);
-  const [documentAction, setDocumentAction] = useState<
-    "load" | "refresh" | "upload" | "delete" | null
-  >("load");
-  const documentRequestActive = useRef(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [documentError, setDocumentError] = useState("");
-  const [documentNotice, setDocumentNotice] = useState("");
-
-  async function refreshDocuments(showLoading = true) {
-    if (documentRequestActive.current) return;
-
-    documentRequestActive.current = true;
-    setDocumentBusy(true);
-    setDocumentAction(showLoading ? "load" : "refresh");
-    if (showLoading) setLoadingDocuments(true);
-    setDocumentError("");
-
-    try {
-      setDocuments(await listDocuments());
-    } catch (reason) {
-      if (reason instanceof ChatApiError && reason.status === 401) {
-        logout();
-        navigate("/login", { replace: true });
-        return;
-      }
-
-      setDocumentError(
-        reason instanceof Error ? reason.message : "Could not load your documents.",
-      );
-    } finally {
-      documentRequestActive.current = false;
-      setDocumentBusy(false);
-      setDocumentAction(null);
-      setLoadingDocuments(false);
-    }
-  }
-
-  useEffect(() => {
-    void refreshDocuments();
-  }, []);
-
-  async function handleDocumentUpload(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (documentRequestActive.current || !selectedFile) return;
-    const uploadForm = event.currentTarget;
-
-    documentRequestActive.current = true;
-    setDocumentBusy(true);
-    setDocumentAction("upload");
-    setDocumentError("");
-    setDocumentNotice("");
-
-    try {
-      const uploaded = await uploadDocument(selectedFile);
-      setDocuments((current) => [
-        uploaded,
-        ...current.filter((document) => document.id !== uploaded.id),
-      ]);
-      setSelectedFile(null);
-      uploadForm.reset();
-      setDocumentNotice(`${uploaded.original_filename} uploaded successfully.`);
-    } catch (reason) {
-      if (reason instanceof ChatApiError && reason.status === 401) {
-        logout();
-        navigate("/login", { replace: true });
-        return;
-      }
-
-      setDocumentError(
-        reason instanceof Error ? reason.message : "Could not upload this document.",
-      );
-      try {
-        setDocuments(await listDocuments());
-      } catch {
-        // Keep the original upload error visible if the list refresh also fails.
-      }
-    } finally {
-      documentRequestActive.current = false;
-      setDocumentBusy(false);
-      setDocumentAction(null);
-    }
-  }
-
-  async function handleDocumentDelete(document: TutorDocument) {
-    if (documentRequestActive.current) return;
-    if (!window.confirm(`Delete “${document.original_filename}”? This cannot be undone.`)) {
-      return;
-    }
-
-    documentRequestActive.current = true;
-    setDocumentBusy(true);
-    setDocumentAction("delete");
-    setDocumentError("");
-    setDocumentNotice("");
-
-    try {
-      await deleteDocument(document.id);
-      setDocuments((current) => current.filter((item) => item.id !== document.id));
-      setDocumentNotice(`${document.original_filename} was deleted.`);
-    } catch (reason) {
-      if (reason instanceof ChatApiError && reason.status === 401) {
-        logout();
-        navigate("/login", { replace: true });
-        return;
-      }
-
-      setDocumentError(
-        reason instanceof Error ? reason.message : "Could not delete this document.",
-      );
-    } finally {
-      documentRequestActive.current = false;
-      setDocumentBusy(false);
-      setDocumentAction(null);
-    }
-  }
 
   return (
     <main className="page-shell">
-      <section className="hero">
-        <p className="eyebrow">AI Tutor</p>
+      <header className="dashboard-topbar">
+        <Link className="brand-lockup" to="/">
+          <span className="brand-mark" aria-hidden="true">A</span>
+          <span>Learnwell <small>AI TUTOR</small></span>
+        </Link>
+        <button className="secondary-button" onClick={() => { logout(); navigate("/login"); }}>Log out</button>
+      </header>
 
-        <h1>
-          Welcome, {user?.name}.
-        </h1>
-
-        <p className="lead">
-          Your personal tutor is ready to help you
-          learn the why, not just the answer.
-        </p>
-
-        <button
-          onClick={() => navigate("/tutor")}
-        >
-          Open Tutor
-        </button>
-
-        <button
-          className="secondary-button"
-          onClick={() => {
-            logout();
-            navigate("/login");
-          }}
-        >
-          Log out
-        </button>
+      <section className="dashboard-hero">
+        <div className="dashboard-copy">
+          <p className="eyebrow">Your learning space</p>
+          <h1>Welcome back, {user?.name?.split(" ")[0] ?? "there"}.</h1>
+          <p className="lead">Pick up where curiosity takes you. Your AI tutor is ready to explain concepts, work through problems, and help you build lasting understanding.</p>
+          <button className="primary-cta" onClick={() => navigate("/tutor")}>Open your tutor <span aria-hidden="true">→</span></button>
+        </div>
+        <div className="dashboard-art" aria-hidden="true">
+          <div className="orbit orbit-one" /><div className="orbit orbit-two" />
+          <div className="learning-card"><span>✦</span><strong>Learn with confidence</strong><small>One thoughtful question at a time</small></div>
+        </div>
       </section>
 
-      <section className="foundation documents-panel" aria-labelledby="documents-title">
-        <div className="documents-heading">
-          <div>
-            <h2 id="documents-title">Your documents</h2>
-            <p>Upload course materials for your tutor to use.</p>
-          </div>
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={() => void refreshDocuments()}
-            disabled={documentBusy}
-          >
-            {documentAction === "load" || documentAction === "refresh"
-              ? "Refreshing…"
-              : "Refresh documents"}
-          </button>
-        </div>
-
-        <p className="documents-help">
-          Supported formats: PDF, DOCX, PPTX, TXT, and MD. Maximum file size: 20 MB.
-        </p>
-
-        <form className="document-upload-form" onSubmit={(event) => void handleDocumentUpload(event)}>
-          <label htmlFor="lecture-file">Choose a lecture file</label>
-          <input
-            id="lecture-file"
-            type="file"
-            accept=".pdf,.docx,.pptx,.txt,.md"
-            disabled={documentBusy}
-            onChange={(event) => {
-              setSelectedFile(event.target.files?.[0] ?? null);
-              setDocumentError("");
-              setDocumentNotice("");
-            }}
-          />
-          <button type="submit" disabled={documentBusy || !selectedFile}>
-            {documentAction === "upload" ? "Uploading…" : "Upload document"}
-          </button>
-        </form>
-        {documentAction === "upload" && (
-          <p role="status">Uploading and processing your document…</p>
-        )}
-
-        {documentError && <p className="chat-error" role="alert">{documentError}</p>}
-        {documentNotice && <p className="success" role="status">{documentNotice}</p>}
-
-        {loadingDocuments ? (
-          <p role="status">Loading documents…</p>
-        ) : documents.length === 0 && documentError ? null : documents.length === 0 ? (
-          <p>No documents uploaded yet.</p>
-        ) : (
-          <ul className="document-list" aria-label="Uploaded documents">
-            {documents.map((document) => (
-              <li className="document-item" key={document.id}>
-                <div className="document-details">
-                  <strong>{document.original_filename}</strong>
-                  <span>{formatDocumentSize(document.file_size)} · {document.status}</span>
-                  {document.processing_error && (
-                    <span className="document-error">{document.processing_error}</span>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => void handleDocumentDelete(document)}
-                  disabled={documentBusy}
-                  aria-label={`Delete ${document.original_filename}`}
-                >
-                  {documentAction === "delete" ? "Deleting…" : "Delete"}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+      <section className="dashboard-features" aria-label="Ways to learn">
+        <article className="feature-card"><span className="feature-icon">✦</span><div><h2>Ask anything</h2><p>Get clear explanations tailored to the way you learn.</p></div></article>
+        <article className="feature-card"><span className="feature-icon">↗</span><div><h2>Work it through</h2><p>Take problems one step at a time with your tutor by your side.</p></div></article>
+        <article className="feature-card"><span className="feature-icon">▤</span><div><h2>Learn from your notes</h2><p>Bring course materials into the tutor workspace when you need them.</p></div></article>
       </section>
     </main>
   );
-}
-
-function formatDocumentSize(bytes: number): string {
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 
@@ -447,7 +254,7 @@ const suggestedPrompts = [
 
 
 export function TutorPage() {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { conversationId } = useParams<{
     conversationId?: string;
@@ -986,7 +793,7 @@ export function TutorPage() {
         <div className="conversation-sidebar-header">
           <div>
             <p className="eyebrow">
-              AI Tutor
+              AI Tutor · {user?.name ?? "Student"}
             </p>
 
             <h2>
@@ -1107,6 +914,7 @@ export function TutorPage() {
           </div>
         </header>
 
+        <div className="tutor-workspace">
         <section
           className="chat-card"
           aria-label="Tutor chat"
@@ -1255,6 +1063,8 @@ export function TutorPage() {
             </button>
           </form>
         </section>
+        <DocumentsPanel />
+        </div>
       </section>
     </main>
   );

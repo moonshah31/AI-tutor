@@ -33,6 +33,10 @@ npm run dev
 
 Open the Vite URL (normally `http://localhost:5173`). The landing page verifies `GET /api/health` through the development proxy.
 
+### Frontend API URL
+
+The frontend uses relative `/api` URLs by default, which keeps the Vite development proxy working and supports same-origin production reverse proxies. For a separately hosted backend, set the Vite build-time variable `VITE_API_BASE_URL` to the backend origin, for example `https://api.example.com` (or `https://api.example.com/api`). Leave it unset or empty to use relative paths. This variable is public and must not contain secrets; rebuild the frontend after changing it.
+
 ### Containerized development
 
 Docker Compose provides the same stack without installing Python or MongoDB locally:

@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 
 import { ProtectedRoute } from "./auth/ProtectedRoute";
+import { apiUrl } from "./services/api";
 import {
   DashboardPage,
   LoginPage,
@@ -65,7 +66,7 @@ function LandingPage() {
     async function checkHealth() {
       try {
         const response = await fetch(
-          "/api/health",
+          apiUrl("/api/health"),
           {
             signal: controller.signal,
           },
