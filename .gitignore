@@ -31,8 +31,7 @@ dist/
 *.bak
 
 # Local uploads and generated document storage
-
-backend/storage/documents/
+backend/storage/
 
 # OS and editor files
 .DS_Store
